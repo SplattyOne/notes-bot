@@ -123,7 +123,7 @@ class TeamlyClient:
             'Authorization': 'Bearer %s' % (teamly_tokens.access_token,)
         }
 
-    async def create_note(self, message: str) -> None:
+    async def create_note(self, text: str) -> None:
         logger.debug('Teamly create note start')
         message_create = {
             "code": "article_create",
@@ -136,7 +136,7 @@ class TeamlyClient:
                             "method": "add",
                             "code": "title",
                             "value": {
-                                "text": message
+                                "text": text
                             },
                         },
                         {

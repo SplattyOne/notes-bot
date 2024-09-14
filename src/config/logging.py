@@ -16,3 +16,7 @@ def configure_logging(settings: AppSettings) -> None:
         handlers=[console_handler],
         force=True
     )
+    # change default loggers
+    logging.getLogger('httpcore').setLevel('WARNING')
+    logging.getLogger('httpx').setLevel('WARNING')
+    logging.getLogger('telegram').setLevel('WARNING')
