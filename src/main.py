@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 
 from config.settings import get_settings
 from config.logging import configure_logging
@@ -16,6 +17,11 @@ class App:
     def __init__(self) -> None:
         self._settings = get_settings()
         configure_logging(self._settings)
+        self._configure_dirs()
+
+    def _configure_dirs(self):
+        if not os.path.exists(self._settings.tmp_dir):
+            os.mkdir(self._settings.tmp_dir)
 
     async def run_async(self) -> None:
         async with teamly_repositories.teamly_session_context() as teamly_session, \
@@ -31,7 +37,7 @@ class App:
                 self._settings.teamly.client_auth_code
             )
             self._teamly_service = teamly_services.TeamlyService(self._teamly_client)
-            self._telegram_client = telegram_repositories.TelegramClient(telegram_app)
+            self._telegram_client = telegram_repositories.TelegramClient(telegram_app, self._settings.tmp_dir)
             self._telegram_service = telegram_services.TelegramService(self._telegram_client)
             self._notes_handler = notes_handlers.NotesHandler(self._telegram_service, self._teamly_service)
             await self._notes_handler.transmit_messages()

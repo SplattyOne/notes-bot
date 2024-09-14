@@ -1,4 +1,5 @@
 import logging
+import os
 import typing
 from contextlib import asynccontextmanager
 
@@ -6,6 +7,7 @@ from telegram import Update
 from telegram.ext import Application, ContextTypes, CommandHandler, MessageHandler, filters
 
 from services.telegram import TelegramClientProtocol
+from utils.speech import SpeechRecognizer
 
 logger = logging.getLogger(__name__)
 
@@ -26,12 +28,14 @@ async def telegram_app_context(telegram_token: str) -> typing.AsyncGenerator[App
 
 
 class TelegramClient(TelegramClientProtocol):
-    def __init__(self, telegram_app: Application) -> None:
+    def __init__(self, telegram_app: Application, tmp_dir: str = 'tmp') -> None:
         self._telegram_app = telegram_app
+        self._tmp_dir = tmp_dir
         self._message_callback = None
         self._voice_callback = None
         self._telegram_app.add_handler(
             CommandHandler("start", self._start_handler, block=False))
+        self._recognizer = SpeechRecognizer(self._tmp_dir)
 
     async def _text_message_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         logger.debug('Got message from telegram: %s', update.message.text)
@@ -41,8 +45,11 @@ class TelegramClient(TelegramClientProtocol):
     async def _voice_message_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         logger.debug('Got voice from telegram: %s', update.message.voice.file_id)
         new_file = await context.bot.get_file(update.message.voice.file_id)
-        await new_file.download_to_drive('tmp/voice_note.ogg')
-        await self._voice_callback(update.message.voice.file_id)
+        voice_file_path = os.path.join(self._tmp_dir, update.message.voice.file_id + '.ogg')
+        await new_file.download_to_drive(voice_file_path)
+        text = self._recognizer.recognize(voice_file_path) or update.message.voice.file_id
+        await self._voice_callback(text)
+        os.unlink(voice_file_path)
         await update.message.reply_text('Voice recieved.')
 
     async def _start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
