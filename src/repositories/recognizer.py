@@ -1,21 +1,27 @@
 import logging
 import os
-import subprocess
+import typing
 import traceback
 
 import speech_recognition
 
+from utils.convert import convert_to_wav
+
 logger = logging.getLogger(__name__)
 
 
-class SpeechRecognizer:
+class SpeechRecognizerProtocol(typing.Protocol):
+    def recognize(self, voice_path: str) -> str | None:
+        ...
+
+
+class SpeechRecognizer(SpeechRecognizerProtocol):
     def __init__(self, tmp_dir: str = 'tmp') -> None:
         self._recognizer = speech_recognition.Recognizer()
         self._tmp_dir = tmp_dir
 
     def recognize(self, source_path: str) -> str | None:
-        target_path = os.path.join(self._tmp_dir, os.path.basename(source_path) + '.wav')
-        subprocess.run(['ffmpeg', '-i', source_path, target_path, '-y'])
+        target_path = convert_to_wav(source_path, self._tmp_dir)
         text = None
         with speech_recognition.AudioFile(target_path) as source:
             try:

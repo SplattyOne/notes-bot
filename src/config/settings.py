@@ -10,6 +10,7 @@ class TelegramSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file='.env.local', env_file_encoding='utf-8', extra='ignore')
     token: str = pydantic.Field(None, alias='TELEGRAM_TOKEN')
+    allowed_users: list = pydantic.Field(None, alias='TELEGRAM_ALLOWED_USERS')
 
 
 class TeamlySettings(BaseSettings):

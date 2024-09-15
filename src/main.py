@@ -7,6 +7,7 @@ from config.logging import configure_logging
 import handlers.notes as notes_handlers
 import repositories.teamly as teamly_repositories
 import repositories.telegram as telegram_repositories
+import repositories.recognizer as recognizer_repositories
 import services.teamly as teamly_services
 import services.telegram as telegram_services
 
@@ -27,9 +28,7 @@ class App:
         async with teamly_repositories.teamly_session_context() as teamly_session, \
                 telegram_repositories.telegram_app_context(self._settings.telegram.token) as telegram_app:
             self._teamly_client = teamly_repositories.TeamlyClient(
-                teamly_session,
-                self._settings.teamly.database_id,
-                self._settings.tmp_dir
+                teamly_session, self._settings.teamly.database_id, self._settings.tmp_dir
             ).with_session(
                 self._settings.teamly.integration_id,
                 self._settings.teamly.integration_url,
@@ -37,7 +36,9 @@ class App:
                 self._settings.teamly.client_auth_code
             )
             self._teamly_service = teamly_services.TeamlyService(self._teamly_client)
-            self._telegram_client = telegram_repositories.TelegramClient(telegram_app, self._settings.tmp_dir)
+            self._recognizer = recognizer_repositories.SpeechRecognizer(self._settings.tmp_dir)
+            self._telegram_client = telegram_repositories.TelegramClient(
+                telegram_app, self._recognizer, self._settings.tmp_dir, self._settings.telegram.allowed_users)
             self._telegram_service = telegram_services.TelegramService(self._telegram_client)
             self._notes_handler = notes_handlers.NotesHandler(self._telegram_service, self._teamly_service)
             await self._notes_handler.transmit_messages()

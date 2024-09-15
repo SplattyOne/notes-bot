@@ -7,6 +7,8 @@ logger = logging.getLogger(__name__)
 
 
 class TelegramClientProtocol(typing.Protocol):
+    _allowed_users: list = None
+
     def handle_text_message(self, callback: typing.Coroutine) -> None:
         ...
 
