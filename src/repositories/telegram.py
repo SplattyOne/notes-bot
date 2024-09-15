@@ -81,7 +81,7 @@ class TelegramClient(TelegramClientProtocol):
         new_file = await context.bot.get_file(update.message.voice.file_id)
         voice_file_path = os.path.join(self._tmp_dir, update.message.voice.file_id + '.ogg')
         await new_file.download_to_drive(voice_file_path)
-        text = self._recognizer.recognize(voice_file_path) or update.message.voice.file_id
+        text = await self._recognizer.async_recognize(voice_file_path) or update.message.voice.file_id
         await self._voice_callback(text)
         os.unlink(voice_file_path)
         await update.message.reply_text('Voice recieved.')

@@ -6,12 +6,16 @@ import traceback
 import speech_recognition
 
 from utils.convert import convert_to_wav
+from utils.asynctools import async_wrapper
 
 logger = logging.getLogger(__name__)
 
 
 class SpeechRecognizerProtocol(typing.Protocol):
     def recognize(self, voice_path: str) -> str | None:
+        ...
+
+    async def async_recognize(self, voice_path: str) -> str | None:
         ...
 
 
@@ -33,3 +37,7 @@ class SpeechRecognizer(SpeechRecognizerProtocol):
                 logger.error('Exception:\n %s', traceback.format_exc())
         os.unlink(target_path)
         return text
+
+    @async_wrapper
+    def async_recognize(self, source_path: str) -> str | None:
+        return self.recognize(source_path)
