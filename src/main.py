@@ -28,7 +28,11 @@ class App:
         async with teamly_repositories.teamly_session_context() as teamly_session, \
                 telegram_repositories.telegram_app_context(self._settings.telegram.token) as telegram_app:
             self._teamly_client = teamly_repositories.TeamlyClient(
-                teamly_session, self._settings.teamly.database_id, self._settings.tmp_dir
+                teamly_session,
+                self._settings.tmp_dir,
+                self._settings.teamly.database_id,
+                self._settings.teamly.status_field_id,
+                self._settings.teamly.status_field_value
             ).with_session(
                 self._settings.teamly.integration_id,
                 self._settings.teamly.integration_url,
@@ -43,7 +47,7 @@ class App:
             self._notes_handler = notes_handlers.NotesHandler(self._telegram_service, self._teamly_service)
             await self._notes_handler.transmit_messages()
             while True:
-                await asyncio.sleep(0)
+                await asyncio.sleep(60)
 
     def run(self) -> None:
         logger.warning('Starting app...')

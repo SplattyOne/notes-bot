@@ -31,12 +31,15 @@ class TeamlyClient:
     _integration_url = None
     _client_secret = None
     _client_auth_code = None
+    _teamly_tokens = None
 
-    def __init__(self, teamly_session: aiohttp.ClientSession, database_id: str, tmp_dir: str) -> None:
+    def __init__(self, teamly_session: aiohttp.ClientSession, tmp_dir: str, database_id: str,
+                 status_field_id: str, status_field_value: str) -> None:
         self._teamly_session = teamly_session
-        self._teamly_tokens = None
-        self._database_id = database_id
         self._tmp_dir = tmp_dir
+        self._database_id = database_id
+        self._status_field_id = status_field_id
+        self._status_field_value = status_field_value
 
     def with_session(
             self, integration_id: str, integration_url: str, client_secret: str, client_auth_code: str):
@@ -141,8 +144,8 @@ class TeamlyClient:
                         },
                         {
                             "method": "add",
-                            "code": "68702010-6c0c-5993-af0c-9f18aac4e608",
-                            "value": '7ac43101-2e74-5847-9c38-51e08f6c2fb7'
+                            "code": self._status_field_id,
+                            "value": self._status_field_value
                         }
                     ]
                 }

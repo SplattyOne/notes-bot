@@ -22,8 +22,10 @@ class TeamlySettings(BaseSettings):
     integration_url: str = pydantic.Field(None, alias='TEAMLY_INTEGRATION_URL')
     client_secret: str = pydantic.Field(None, alias='TEAMLY_CLIENT_SECRET')
     client_auth_code: str = pydantic.Field(None, alias='TEAMLY_AUTH_CODE')
-    # ID of database for adding new rows
+    # ID of database and status field for adding new rows
     database_id: str = pydantic.Field(None, alias='TEAMLY_DATABASE_ID')
+    status_field_id: str = pydantic.Field(None, alias='TEAMLY_STATUS_FIELD_ID')
+    status_field_value: str = pydantic.Field(None, alias='TEAMLY_STATUS_FIELD_VALUE')
 
 
 class AppSettings(BaseSettings):

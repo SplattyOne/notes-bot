@@ -1,13 +1,13 @@
-FROM python:3.10
+FROM python:3.10-slim
 
 RUN apt-get update --fix-missing && \
-    apt-get -y install ffmpeg && \
+    apt-get -y install ffmpeg git && \
     apt-get clean
 
 WORKDIR /opt/app
 
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 COPY requirements.txt requirements.txt
 
