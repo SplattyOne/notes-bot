@@ -1,0 +1,10 @@
+version: '3.8'
+services:
+  notes-worker:
+    build: ./
+    hostname: notes-worker
+    restart: unless-stopped
+    volumes:
+      - ./tmp:/opt/app/tmp:rw
+    env_file:
+      - ./.env.local
