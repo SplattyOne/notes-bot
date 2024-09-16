@@ -101,22 +101,23 @@ class TeamlyClient:
         self._teamly_tokens = teamly_models.AuthTokens(**teamly_tokens)
         return self._teamly_tokens
 
-    def _write_tokens(self, teamly_tokens: teamly_models.AuthTokens) -> None:
+    def _write_tokens(self, teamly_tokens: teamly_models.AuthTokens) -> teamly_models.AuthTokens:
         teamly_tokens_path = os.path.join(self._tmp_dir, TEAMLY_TOKEN_FILE)
         with open(teamly_tokens_path, 'w') as file_opened:
             file_opened.write(teamly_tokens.model_dump_json())
         self._teamly_tokens = teamly_tokens
+        return teamly_tokens
 
     async def _handle_tokens(self) -> teamly_models.AuthTokens:
         teamly_tokens = self._read_tokens()
         if not teamly_tokens.refresh_token_expires_at or \
                 datetime.fromtimestamp(teamly_tokens.refresh_token_expires_at) < datetime.now():
             answer = await self._get_auth_tokens()
-            self._write_tokens(answer.to_auth_tokens())
+            teamly_tokens = self._write_tokens(answer.to_auth_tokens())
         if not teamly_tokens.access_token_expires_at or \
                 datetime.fromtimestamp(teamly_tokens.access_token_expires_at) < datetime.now():
             answer = await self._refresh_auth_tokens(teamly_tokens.refresh_token)
-            self._write_tokens(answer.to_auth_tokens())
+            teamly_tokens = self._write_tokens(answer.to_auth_tokens())
         return teamly_tokens
 
     async def _get_token_headers(self) -> dict:
