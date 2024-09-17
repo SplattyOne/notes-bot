@@ -27,17 +27,20 @@ class App:
     async def run_async(self) -> None:
         async with teamly_repositories.teamly_session_context() as teamly_session, \
                 telegram_repositories.telegram_app_context(self._settings.telegram.token) as telegram_app:
-            self._teamly_client = teamly_repositories.TeamlyClient(
+            self._teamly_auth = teamly_repositories.TeamlyAuthClient(
                 teamly_session,
                 self._settings.tmp_dir,
-                self._settings.teamly.database_id,
-                self._settings.teamly.status_field_id,
-                self._settings.teamly.status_field_value
-            ).with_session(
                 self._settings.teamly.integration_id,
                 self._settings.teamly.integration_url,
                 self._settings.teamly.client_secret,
                 self._settings.teamly.client_auth_code
+            )
+            self._teamly_client = teamly_repositories.TeamlyClient(
+                teamly_session,
+                self._teamly_auth,
+                self._settings.teamly.database_id,
+                self._settings.teamly.status_field_id,
+                self._settings.teamly.status_field_value
             )
             self._teamly_service = teamly_services.TeamlyService(self._teamly_client)
             self._recognizer = recognizer_repositories.SpeechRecognizer(self._settings.tmp_dir)
