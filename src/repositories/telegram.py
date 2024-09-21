@@ -1,10 +1,11 @@
+import asyncio
 import logging
 import os
 import typing
 from contextlib import asynccontextmanager
 from functools import wraps
 
-from telegram import Update
+from telegram import Update, KeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import Application, ContextTypes, CommandHandler, MessageHandler, filters
 
 from services.telegram import TelegramClientProtocol
@@ -87,11 +88,28 @@ class TelegramClient(TelegramClientProtocol):
         await update.message.reply_text('Voice recieved.')
         await update.message.delete()
 
+    @check_user_allowed
+    async def _notes_request_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        logger.debug('Got notes request from telegram: %s', update.message.text)
+        notes = '\n'.join(await self._notes_request_callback())
+        user = update.effective_user
+        reply_message = await update.message.reply_html(
+            f'Hi {user.mention_html()}! Your current notes:\n{notes}'
+        )
+        await update.message.delete()
+        await asyncio.sleep(10)
+        await reply_message.delete()
+
     async def _start_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Send a message when the command /start is issued."""
         user = update.effective_user
+        keyboard = [
+            [KeyboardButton("/notes"),],
+        ]
+        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
         await update.message.reply_html(
-            rf"Hi {user.mention_html()}! This bot can read your message/speech and convert it to note."
+            f"Hi {user.mention_html()}! This bot can read your message/speech and convert it to note.",
+            reply_markup=reply_markup
         )
 
     def _handle_default_commands(self):
@@ -113,3 +131,8 @@ class TelegramClient(TelegramClientProtocol):
             self._voice_message_handler,
             block=False
         ))
+
+    def handle_notes_request(self, callback: typing.Coroutine) -> None:
+        self._notes_request_callback = callback
+        self._telegram_app.add_handler(
+            CommandHandler("notes", self._notes_request_handler, block=False))
