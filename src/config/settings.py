@@ -26,6 +26,7 @@ class TeamlySettings(BaseSettings):
     database_id: str = pydantic.Field(None, alias='TEAMLY_DATABASE_ID')
     status_field_id: str = pydantic.Field(None, alias='TEAMLY_STATUS_FIELD_ID')
     status_field_value: str = pydantic.Field(None, alias='TEAMLY_STATUS_FIELD_VALUE')
+    done_field_id: str = pydantic.Field(None, alias='TEAMLY_DONE_FIELD_ID')
 
 
 class AppSettings(BaseSettings):

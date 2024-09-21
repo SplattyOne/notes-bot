@@ -40,7 +40,8 @@ class App:
                 self._teamly_auth,
                 self._settings.teamly.database_id,
                 self._settings.teamly.status_field_id,
-                self._settings.teamly.status_field_value
+                self._settings.teamly.status_field_value,
+                self._settings.teamly.done_field_id
             )
             self._teamly_service = teamly_services.TeamlyService(self._teamly_client)
             self._recognizer = recognizer_repositories.SpeechRecognizer(self._settings.tmp_dir)
