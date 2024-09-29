@@ -71,7 +71,7 @@ class TeamlyClient:
         answer = await self._teamly_session.request(
             'POST', TEAMLY_API_CREATE_NOTE, message, headers=await self._teamly_auth.get_token_headers())
         logger.debug('Teamly create note answer: %s', answer)
-        return answer
+        return
 
     async def get_notes(self) -> list[teamly_models.Note]:
         logger.debug('Teamly get notes start')
