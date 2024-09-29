@@ -29,11 +29,26 @@ class TeamlySettings(BaseSettings):
     done_field_id: str = pydantic.Field(None, alias='TEAMLY_DONE_FIELD_ID')
 
 
+class YonoteSettings(BaseSettings):
+    """Yonote integration settings, more info:
+    https://yonote.ru/developers#section/Vvedenie"""
+    model_config = SettingsConfigDict(
+        env_file='.env.local', env_file_encoding='utf-8', extra='ignore')
+    yonote_token: str = pydantic.Field(None, alias='YONOTE_TOKEN')
+    # ID of database and status field for adding new rows
+    database_id: str = pydantic.Field(None, alias='YONOTE_DATABASE_ID')
+    collection_id: str = pydantic.Field(None, alias='YONOTE_COLLECTION_ID')
+    status_field_id: str = pydantic.Field(None, alias='YONOTE_STATUS_FIELD_ID')
+    status_field_value: str = pydantic.Field(None, alias='YONOTE_STATUS_FIELD_VALUE')
+    done_field_id: str = pydantic.Field(None, alias='YONOTE_DONE_FIELD_ID')
+
+
 class AppSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file='.env.local', env_file_encoding='utf-8', extra='ignore')
     telegram: TelegramSettings = TelegramSettings()
     teamly: TeamlySettings = TeamlySettings()
+    yonote: YonoteSettings = YonoteSettings()
 
     log_level: str = pydantic.Field('INFO', alias='LOG_LEVEL')
     tmp_dir: str = pydantic.Field('tmp', alias='TMP_DIR')

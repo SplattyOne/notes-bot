@@ -6,7 +6,7 @@ import handlers.notes as notes_handlers
 logger = logging.getLogger(__name__)
 
 
-class TeamlyClientProtocol(typing.Protocol):
+class YonoteClientProtocol(typing.Protocol):
     async def create_note(self, message: str) -> None:
         ...
 
@@ -14,8 +14,8 @@ class TeamlyClientProtocol(typing.Protocol):
         ...
 
 
-class TeamlyService(notes_handlers.NotesServiceProtocol):
-    def __init__(self, notes_client: TeamlyClientProtocol) -> None:
+class YonoteService(notes_handlers.NotesServiceProtocol):
+    def __init__(self, notes_client: YonoteClientProtocol) -> None:
         self._notes_client = notes_client
 
     async def create_note(self, text: str) -> None:

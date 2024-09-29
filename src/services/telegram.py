@@ -20,12 +20,12 @@ class TelegramClientProtocol(typing.Protocol):
 
 
 class TelegramService(notes_handlers.MessageServiceProtocol):
-    def __init__(self, telegram_client: TelegramClientProtocol) -> None:
-        self._telegram_client = telegram_client
+    def __init__(self, chat_client: TelegramClientProtocol) -> None:
+        self._chat_client = chat_client
 
     async def handle_messages(self, callback: typing.Coroutine) -> None:
-        self._telegram_client.handle_text_message(callback)
-        self._telegram_client.handle_voice_message(callback)
+        self._chat_client.handle_text_message(callback)
+        self._chat_client.handle_voice_message(callback)
 
     async def handle_notes_request(self, callback: typing.Coroutine) -> None:
-        self._telegram_client.handle_notes_request(callback)
+        self._chat_client.handle_notes_request(callback)

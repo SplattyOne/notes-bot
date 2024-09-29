@@ -9,7 +9,7 @@ from telegram import Update, KeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import Application, ContextTypes, CommandHandler, MessageHandler, filters
 
 from services.telegram import TelegramClientProtocol
-from repositories.recognizer import SpeechRecognizerProtocol
+from utils.recognizer import SpeechRecognizerProtocol
 
 logger = logging.getLogger(__name__)
 
@@ -91,10 +91,9 @@ class TelegramClient(TelegramClientProtocol):
     @check_user_allowed
     async def _notes_request_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         logger.debug('Got notes request from telegram: %s', update.message.text)
-        notes = '\n'.join(await self._notes_request_callback())
         user = update.effective_user
         reply_message = await update.message.reply_html(
-            f'Hi {user.mention_html()}! Your current notes:\n{notes}'
+            f'Hi {user.mention_html()}! Your current notes:\n{await self._notes_request_callback()}'
         )
         await update.message.delete()
         await asyncio.sleep(10)
