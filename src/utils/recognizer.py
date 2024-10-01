@@ -32,7 +32,7 @@ class SpeechRecognizer(SpeechRecognizerProtocol):
                 # self._recognizer.adjust_for_ambient_noise(source)
                 audio = self._recognizer.record(source)
                 text = self._recognizer.recognize_whisper(
-                    audio, language='Russian', load_options={'download_root': self._tmp_dir})
+                    audio, language='Russian', model='turbo', load_options={'download_root': self._tmp_dir})
                 logger.info('Recognized text: %s', text)
             except Exception:
                 logger.error('Exception:\n %s', traceback.format_exc())

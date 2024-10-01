@@ -66,7 +66,8 @@ class App:
                 .with_notes_service(self._yonote_service)
             #    .with_notes_service(self._teamly_service)
             await self._notes_handler.transmit_messages()
-            await scheduler_utils.Scheduler().run_job(self._notes_handler.delete_done_notes, every_seconds=300)
+            if self._settings.delete_done_notes:
+                await scheduler_utils.Scheduler().run_job(self._notes_handler.delete_done_notes, every_seconds=300)
             while True:
                 await asyncio.sleep(5)
 

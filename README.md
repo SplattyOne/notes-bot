@@ -8,6 +8,11 @@ Bot for fast notes taking from telegram-bot, yandex-station, etc.
 - Teamly (https://academy.teamly.ru/space/5019017b-ad03-4c00-bdc0-0952fc1cac88/article/dfa9a32d-02c8-4f35-95d9-c98ca2e478c0)
 - Yonote (https://yonote.ru/developers#section/Vvedenie)
 
+#### Minimal notes structure you need:
+- title: [string] note text
+- status: [string] from list of values, for example "in progress", "new", "done"
+- done: [bool] checkbox for autodeleting
+
 ## To-do
 1. User settings from chat:
   - where do you want to save your notes (Teamly, Yonote, ...);

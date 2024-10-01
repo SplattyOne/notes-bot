@@ -52,6 +52,7 @@ class AppSettings(BaseSettings):
 
     log_level: str = pydantic.Field('INFO', alias='LOG_LEVEL')
     tmp_dir: str = pydantic.Field('tmp', alias='TMP_DIR')
+    delete_done_notes: int = pydantic.Field(0, alias='DELETE_DONE_NOTES')
 
 
 @lru_cache
