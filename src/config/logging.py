@@ -20,3 +20,4 @@ def configure_logging(settings: AppSettings) -> None:
     logging.getLogger('httpcore').setLevel('WARNING')
     logging.getLogger('httpx').setLevel('WARNING')
     logging.getLogger('telegram').setLevel('WARNING')
+    logging.getLogger('apscheduler').setLevel('WARNING')

@@ -6,10 +6,12 @@ from contextlib import asynccontextmanager
 import aiohttp
 
 import models.yonote as yonote_models
+import services.notes as notes_services
 import utils.http as http_utils
 
 YONOTE_API_URL = 'https://app.yonote.ru'
 YONOTE_API_CREATE_NOTE = '/api/documents.create'
+YONOTE_API_DELETE_NOTE = '/api/documents.delete'
 YONOTE_API_GET_NOTES = '/api/database.rows.list?limit=100&offset=0'
 
 logger = logging.getLogger(__name__)
@@ -22,7 +24,7 @@ async def yonote_session_context(*args, **kwargs) -> typing.AsyncGenerator[aioht
         yield session
 
 
-class YonoteClient:
+class YonoteClient(notes_services.NoteClientProtocol):
 
     def __init__(self, yonote_session: aiohttp.ClientSession, yonote_token: str, database_id: str,
                  collection_id: str, status_field_id: str, status_field_value: str, done_field_id: str) -> None:
@@ -70,11 +72,27 @@ class YonoteClient:
             'POST', YONOTE_API_GET_NOTES, message, headers=self._get_token_headers())
         answer_model = yonote_models.NotesAnswer(**answer)
         notes = answer_model.to_notes(self._status_field_id, self._done_field_id)
-        undone_notes = list(filter(lambda x: not x.done, notes))
-        undone_notes_titles = list(map(lambda x: '[%s] %s' % (
-            x.status,
-            x.title
-        ), undone_notes))
 
-        logger.debug('Yonote get notes answer: %s', undone_notes_titles)
-        return sorted(undone_notes_titles)
+        logger.debug('Yonote get notes answer: %s', notes)
+        return notes
+
+    async def get_done_notes(self) -> list[yonote_models.Note]:
+        notes = await self.get_notes()
+        done_notes = list(filter(lambda x: x.done, notes))
+        return done_notes
+
+    async def get_undone_notes(self) -> list[yonote_models.Note]:
+        notes = await self.get_notes()
+        undone_notes = list(filter(lambda x: not x.done, notes))
+        return undone_notes
+
+    async def delete_note(self, note_id: uuid.UUID) -> None:
+        logger.debug('Yonote delete note start')
+        message = {
+            'id': str(note_id),
+            'permanent': False,
+        }
+        answer = await self._yonote_session.request(
+            'POST', YONOTE_API_DELETE_NOTE, message, headers=self._get_token_headers())
+        logger.debug('Yonote delete note answer: %s', answer)
+        return

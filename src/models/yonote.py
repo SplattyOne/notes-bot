@@ -1,13 +1,10 @@
-import uuid
-
 from pydantic import BaseModel
 
+import models.notes as notes_models
 
-class Note(BaseModel):
-    id: uuid.UUID
-    title: str | None
-    status: str | None
-    done: bool | None
+
+class Note(notes_models.Note):
+    pass
 
 
 class NotesAnswer(BaseModel):

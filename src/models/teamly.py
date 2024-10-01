@@ -2,6 +2,8 @@ import uuid
 
 from pydantic import BaseModel
 
+import models.notes as notes_models
+
 
 class AuthTokens(BaseModel):
     access_token: str = None
@@ -22,11 +24,8 @@ class AuthTokensAnswer(BaseModel):
         return AuthTokens(**self.model_dump(exclude=('accounts',)), slug=self.accounts[0].get('slug'))
 
 
-class Note(BaseModel):
-    id: uuid.UUID
-    title: str | None
-    status: str | None
-    done: bool | None
+class Note(notes_models.Note):
+    pass
 
 
 class NotesAnswer(BaseModel):
