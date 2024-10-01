@@ -1,7 +1,7 @@
 FROM python:3.11-slim
 
 RUN apt-get update --fix-missing && \
-    apt-get -y install ffmpeg git && \
+    apt-get -y install ffmpeg && \
     apt-get clean
 
 WORKDIR /opt/app

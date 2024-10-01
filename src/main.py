@@ -8,10 +8,11 @@ import handlers.notes as notes_handlers
 import repositories.teamly as teamly_repositories
 import repositories.yonote as yonote_repositories
 import repositories.telegram as telegram_repositories
-import utils.recognizer as recognizer_repositories
 import services.teamly as teamly_services
 import services.yonote as yonote_services
 import services.telegram as telegram_services
+import utils.recognizer as recognizer_utils
+import utils.scheduler as scheduler_utils
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +58,7 @@ class App:
             )
             self._teamly_service = teamly_services.TeamlyService(self._teamly_client)
             self._yonote_service = yonote_services.YonoteService(self._yonote_client)
-            self._recognizer = recognizer_repositories.SpeechRecognizer(self._settings.tmp_dir)
+            self._recognizer = recognizer_utils.SpeechRecognizer(self._settings.tmp_dir)
             self._telegram_client = telegram_repositories.TelegramClient(
                 telegram_app, self._recognizer, self._settings.tmp_dir, self._settings.telegram.allowed_users)
             self._telegram_service = telegram_services.TelegramService(self._telegram_client)
@@ -65,8 +66,10 @@ class App:
                 .with_notes_service(self._yonote_service)
             #    .with_notes_service(self._teamly_service)
             await self._notes_handler.transmit_messages()
+            if self._settings.delete_done_notes:
+                await scheduler_utils.Scheduler().run_job(self._notes_handler.delete_done_notes, every_seconds=300)
             while True:
-                await asyncio.sleep(60)
+                await asyncio.sleep(5)
 
     def run(self) -> None:
         logger.warning('Starting app...')

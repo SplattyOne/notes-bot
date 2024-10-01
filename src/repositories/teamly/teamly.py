@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 import aiohttp
 
 import models.teamly as teamly_models
+import services.notes as notes_services
 import utils.http as http_utils
 
 TEAMLY_API_URL = 'https://app4.teamly.ru'
@@ -27,7 +28,7 @@ class TeamlyAuthClientProtocol(typing.Protocol):
         ...
 
 
-class TeamlyClient:
+class TeamlyClient(notes_services.NoteClientProtocol):
     _integration_id = None
     _integration_url = None
     _client_secret = None
@@ -96,11 +97,20 @@ class TeamlyClient:
             'POST', TEAMLY_API_GET_NOTES, message, headers=await self._teamly_auth.get_token_headers())
         answer_model = teamly_models.NotesAnswer(**answer)
         notes = answer_model.to_notes(self._status_field_id, self._done_field_id)
-        undone_notes = list(filter(lambda x: not x.done, notes))
-        undone_notes_titles = list(map(lambda x: '[%s] %s' % (
-            x.status[:5],
-            x.title
-        ), undone_notes))
 
-        logger.debug('Teamly get notes answer: %s', undone_notes_titles)
-        return sorted(undone_notes_titles)
+        logger.debug('Teamly get notes answer: %s', notes)
+        return notes
+
+    async def get_done_notes(self) -> list[teamly_models.Note]:
+        notes = await self.get_notes()
+        done_notes = list(filter(lambda x: x.done, notes))
+        return done_notes
+
+    async def get_undone_notes(self) -> list[teamly_models.Note]:
+        notes = await self.get_notes()
+        undone_notes = list(filter(lambda x: not x.done, notes))
+        return undone_notes
+
+    async def delete_note(self, note_id: uuid.UUID) -> None:
+        logger.debug('Teamly delete note start')
+        raise NotImplementedError('Method not implemented for Teamly repository')

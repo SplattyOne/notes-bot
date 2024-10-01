@@ -1,5 +1,6 @@
 import logging
 import typing
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +17,13 @@ class NotesServiceProtocol(typing.Protocol):
     async def create_note(self, text: str) -> None:
         ...
 
-    async def get_notes(self) -> list:
+    async def get_undone_note_titles(self) -> list[str]:
+        ...
+
+    async def get_done_note_ids(self) -> list[uuid.UUID]:
+        ...
+
+    async def delete_note(self, id: uuid.UUID) -> None:
         ...
 
 
@@ -33,11 +40,11 @@ class NotesHandler:
         for notes_service in self._notes_services:
             await notes_service.create_note(text)
 
-    async def _get_notes(self) -> list:
+    async def _get_notes(self) -> str:
         notes = []
         for notes_service in self._notes_services:
             notes += [notes_service.__class__.__name__ + ':']
-            notes += await notes_service.get_notes()
+            notes += await notes_service.get_undone_note_titles()
         return '\n'.join(notes)
 
     async def transmit_messages(self) -> None:
@@ -48,3 +55,10 @@ class NotesHandler:
             self._message_service.__class__.__name__,
             list(map(lambda x: x.__class__.__name__, self._notes_services)),
         )
+
+    async def delete_done_notes(self) -> None:
+        logger.debug('Delete done notes')
+        for notes_service in self._notes_services:
+            note_ids = await notes_service.get_done_note_ids()
+            for note_id in note_ids:
+                await notes_service.delete_note(note_id)
