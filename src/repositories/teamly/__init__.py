@@ -1,9 +1,9 @@
 from .auth import TeamlyAuthClient
-from .teamly import TeamlyClient, TeamlyAuthClientProtocol, teamly_session_context
+from .teamly import TeamlyClient, TeamlyAuthClientProtocol, TEAMLY_API_URL
 
 __all__ = [
     'TeamlyClient',
     'TeamlyAuthClient',
     'TeamlyAuthClientProtocol',
-    'teamly_session_context'
+    'TEAMLY_API_URL'
 ]

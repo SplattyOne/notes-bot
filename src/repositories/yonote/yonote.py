@@ -1,7 +1,5 @@
 import logging
-import typing
 import uuid
-from contextlib import asynccontextmanager
 
 import aiohttp
 
@@ -15,13 +13,6 @@ YONOTE_API_DELETE_NOTE = '/api/documents.delete'
 YONOTE_API_GET_NOTES = '/api/database.rows.list?limit=100&offset=0'
 
 logger = logging.getLogger(__name__)
-
-
-@asynccontextmanager
-async def yonote_session_context(*args, **kwargs) -> typing.AsyncGenerator[aiohttp.ClientSession, None]:
-    """Context manager for Yonote session"""
-    async with aiohttp.ClientSession(YONOTE_API_URL, *args, **kwargs) as session:
-        yield session
 
 
 class YonoteClient(notes_services.NoteClientProtocol):

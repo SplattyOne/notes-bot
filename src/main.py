@@ -2,17 +2,21 @@ import asyncio
 import logging
 import os
 
-from config.settings import get_settings
+from config.settings import get_settings, NoteAppType
 from config.logging import configure_logging
 import handlers.notes as notes_handlers
+import handlers.filter as filter_handlers
 import repositories.teamly as teamly_repositories
 import repositories.yonote as yonote_repositories
+import repositories.notion as notion_repositories
 import repositories.telegram as telegram_repositories
 import services.teamly as teamly_services
 import services.yonote as yonote_services
+import services.notion as notion_services
 import services.telegram as telegram_services
 import utils.recognizer as recognizer_utils
 import utils.scheduler as scheduler_utils
+import utils.http as http_utils
 
 logger = logging.getLogger(__name__)
 
@@ -24,50 +28,83 @@ class App:
         self._configure_dirs()
 
     def _configure_dirs(self):
-        if not os.path.exists(self._settings.tmp_dir):
-            os.mkdir(self._settings.tmp_dir)
+        if not os.path.exists(self._settings.common.tmp_dir):
+            os.mkdir(self._settings.common.tmp_dir)
 
     async def run_async(self) -> None:
-        async with teamly_repositories.teamly_session_context() as teamly_session, \
-                yonote_repositories.yonote_session_context() as yonote_client, \
-                telegram_repositories.telegram_app_context(self._settings.telegram.token) as telegram_app:
-            self._teamly_auth = teamly_repositories.TeamlyAuthClient(
-                teamly_session,
-                self._settings.tmp_dir,
-                self._settings.teamly.integration_id,
-                self._settings.teamly.integration_url,
-                self._settings.teamly.client_secret,
-                self._settings.teamly.client_auth_code
-            )
-            self._teamly_client = teamly_repositories.TeamlyClient(
-                teamly_session,
-                self._teamly_auth,
-                self._settings.teamly.database_id,
-                self._settings.teamly.status_field_id,
-                self._settings.teamly.status_field_value,
-                self._settings.teamly.done_field_id
-            )
-            self._yonote_client = yonote_repositories.YonoteClient(
-                yonote_client,
-                self._settings.yonote.yonote_token,
-                self._settings.yonote.database_id,
-                self._settings.yonote.collection_id,
-                self._settings.yonote.status_field_id,
-                self._settings.yonote.status_field_value,
-                self._settings.yonote.done_field_id
-            )
-            self._teamly_service = teamly_services.TeamlyService(self._teamly_client)
-            self._yonote_service = yonote_services.YonoteService(self._yonote_client)
-            self._recognizer = recognizer_utils.SpeechRecognizer(self._settings.tmp_dir)
+        async with http_utils.aiohttp_session_context(teamly_repositories.TEAMLY_API_URL) as teamly_session, \
+                http_utils.aiohttp_session_context(yonote_repositories.YONOTE_API_URL) as yonote_session, \
+                http_utils.aiohttp_session_context(notion_repositories.NOTION_API_URL) as notion_session, \
+                telegram_repositories.telegram_app_context(self._settings.transmit_from.token) as telegram_app:
+            self._recognizer = recognizer_utils.SpeechRecognizer(self._settings.common.tmp_dir)
             self._telegram_client = telegram_repositories.TelegramClient(
-                telegram_app, self._recognizer, self._settings.tmp_dir, self._settings.telegram.allowed_users)
+                telegram_app,
+                self._recognizer,
+                self._settings.common.tmp_dir,
+                self._settings.transmit_from.allowed_users
+            )
             self._telegram_service = telegram_services.TelegramService(self._telegram_client)
-            self._notes_handler = notes_handlers.NotesHandler(self._telegram_service)\
-                .with_notes_service(self._yonote_service)
-            #    .with_notes_service(self._teamly_service)
+            self._notes_handler = notes_handlers.NotesHandler(self._telegram_service, filter_handlers.NotesFilter)
+
+            for note_client_config in self._settings.transmit_to:
+                if note_client_config.app == NoteAppType.TEAMLY:
+                    self._teamly_auth = teamly_repositories.TeamlyAuthClient(
+                        teamly_session,
+                        self._settings.common.tmp_dir,
+                        note_client_config.integration_id,
+                        note_client_config.integration_url,
+                        note_client_config.client_secret,
+                        note_client_config.client_auth_code
+                    )
+                    self._teamly_client = teamly_repositories.TeamlyClient(
+                        teamly_session,
+                        self._teamly_auth,
+                        note_client_config.database_id,
+                        note_client_config.status_field_id,
+                        note_client_config.status_field_value,
+                        note_client_config.done_field_id
+                    )
+                    self._teamly_service = teamly_services.TeamlyService(self._teamly_client)
+                    self._notes_handler = self._notes_handler.with_notes_service(
+                        self._teamly_service,
+                        note_client_config.delete_done_notes,
+                        note_client_config.start_words
+                    )
+                elif note_client_config.app == NoteAppType.NOTION:
+                    self._notion_client = notion_repositories.NotionClient(
+                        notion_session,
+                        note_client_config.token,
+                        note_client_config.database_id,
+                        note_client_config.status_field_id,
+                        note_client_config.status_field_value,
+                        note_client_config.done_field_id
+                    )
+                    self._notion_service = notion_services.NotionService(self._notion_client)
+                    self._notes_handler = self._notes_handler.with_notes_service(
+                        self._notion_service,
+                        note_client_config.delete_done_notes,
+                        note_client_config.start_words
+                    )
+                elif note_client_config.app == NoteAppType.YONOTE:
+                    self._yonote_client = yonote_repositories.YonoteClient(
+                        yonote_session,
+                        note_client_config.token,
+                        note_client_config.database_id,
+                        note_client_config.collection_id,
+                        note_client_config.status_field_id,
+                        note_client_config.status_field_value,
+                        note_client_config.done_field_id
+                    )
+                    self._yonote_service = yonote_services.YonoteService(self._yonote_client)
+                    self._notes_handler = self._notes_handler.with_notes_service(
+                        self._yonote_service,
+                        note_client_config.delete_done_notes,
+                        note_client_config.start_words
+                    )
+                else:
+                    raise ValueError(f'Error: Unknown note app {note_client_config.app}')
             await self._notes_handler.transmit_messages()
-            if self._settings.delete_done_notes:
-                await scheduler_utils.Scheduler().run_job(self._notes_handler.delete_done_notes, every_seconds=300)
+            await scheduler_utils.Scheduler().run_job(self._notes_handler.delete_done_notes, every_seconds=300)
             while True:
                 await asyncio.sleep(5)
 

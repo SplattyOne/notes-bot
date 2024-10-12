@@ -40,7 +40,7 @@ def check_user_allowed(func):
             if not update.effective_user:
                 return False
             user = update.effective_user
-            if user.id in self._allowed_users:
+            if str(user.id) in self._allowed_users:
                 return True
             return False
         #

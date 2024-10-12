@@ -1,0 +1,34 @@
+transmit_from:
+    app: 'TELEGRAM'
+    token: '*your_token*'
+    allowed_users:
+      - '*your_user_id*'
+      - '*your_dogs_user_id*'
+transmit_to:
+  - app: 'NOTION'
+    token: '*your_app_token*'
+    database_id: '*your_app_database_uuid*'
+    status_field_id: '*your_status_field_uuid*'
+    status_field_value: '*your_status_field_value*'
+    done_field_id: '*your_done_field_uuid*'
+    delete_done_notes: True
+  - app: 'TEAMLY'
+    integration_id: '*your_integration_id*'
+    integration_url: '*your_integration_url*'
+    client_secret: '*your_client_secret*'
+    client_auth_code: '*your_client_auth_code*'
+    database_id: '*your_app_database_uuid*'
+    status_field_id: '*your_status_field_uuid*'
+    status_field_value: '*your_status_field_value*'
+    done_field_id: '*your_done_field_uuid*'
+    start_words: ['link', 'links', 'ссылки', 'ссылка']
+    delete_done_notes: True
+  - app: 'YONOTE'
+    token: '*your_app_token*'
+    database_id: '*your_app_database_uuid*'
+    collection_id: '*your_app_collection_uuid*'
+    status_field_id: '*your_status_field_uuid*'
+    status_field_value: '*your_status_field_value*'
+    done_field_id: '*your_done_field_uuid*'
+    start_words: ['work', 'работа', 'офис']
+    delete_done_notes: True

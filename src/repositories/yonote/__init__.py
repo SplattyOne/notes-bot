@@ -1,6 +1,6 @@
-from .yonote import YonoteClient, yonote_session_context
+from .yonote import YonoteClient, YONOTE_API_URL
 
 __all__ = [
     'YonoteClient',
-    'yonote_session_context'
+    'YONOTE_API_URL'
 ]
