@@ -1,5 +1,4 @@
 import os
-import pathlib
 import shutil
 from enum import Enum
 from functools import lru_cache
@@ -13,7 +12,7 @@ from pydantic_settings import (
 )
 
 
-CWD = pathlib.Path(__file__).parent
+CWD = os.getcwd()
 CONFIG_FILE_NAME = 'config.yaml'
 CONFIG_FILE_EXAMPLE_NAME = 'config.example.yaml'
 
@@ -85,19 +84,17 @@ class CommonSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file='.env.local', env_file_encoding='utf-8', extra='ignore')
 
-    log_level: str = Field('INFO', alias='log_level')
-    tmp_dir: str = Field('tmp', alias='tmp_dir')
+    log_level: str = Field('INFO', alias='LOG_LEVEL')
+    tmp_dir: str = Field('tmp', alias='TMP_DIR')
 
     @field_validator('tmp_dir', mode='after')
     @classmethod
-    def transform_to_abs_path(cls, path: pathlib.Path | str) -> pathlib.Path:
-        if not isinstance(path, (pathlib.Path | str)):
-            raise TypeError('Error: Path must be pathlib.Path or str.')
-
-        path = pathlib.Path(path)
-        if path.is_absolute():
+    def transform_to_abs_path(cls, path: str) -> str:
+        if not isinstance(path, str):
+            raise TypeError('Error: Path must be str.')
+        if os.path.isabs(path):
             return path
-        return CWD / path
+        return os.path.join(CWD, path)
 
     @property
     def config_path(self) -> str:
@@ -106,7 +103,10 @@ class CommonSettings(BaseSettings):
 
 @lru_cache
 def get_common_settings() -> CommonSettings:
-    return CommonSettings()
+    common_settings = CommonSettings()
+    if not os.path.exists(common_settings.config_path):
+        shutil.copy2(CONFIG_FILE_EXAMPLE_NAME, common_settings.config_path)
+    return common_settings
 
 
 class AppSettings(BaseSettings):
@@ -124,8 +124,6 @@ class AppSettings(BaseSettings):
         **kwargs
     ) -> tuple[PydanticBaseSettingsSource, ...]:
         config_path = get_common_settings().config_path
-        if not os.path.exists(config_path):
-            shutil.copy2(CONFIG_FILE_EXAMPLE_NAME, config_path)
         return (YamlConfigSettingsSource(settings_cls, yaml_file=config_path, yaml_file_encoding='utf-8'),)
 
 
