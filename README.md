@@ -21,9 +21,8 @@ Two filter modes:
   2. Else, messages starting with start_words are sent to this application, other messages to applications with an empty start_words
 
 ## To-do
-1. User settings from chat:
+1. Many users with their own configs from chat:
   - where do you want to save your notes (Teamly, Yonote, ...);
   - delete messages after save or not.
-2. Save notes to many databases/note_apps depending on start word in phrase.
-3. Sberchat support. One user for all chat-bots.
-4. Yandex-station support.
+2. Sberchat support. One user for all chat-bots.
+3. Yandex-station support.
