@@ -3,6 +3,7 @@ import typing
 from contextlib import asynccontextmanager
 
 import aiohttp
+import backoff
 import orjson
 import pydantic
 
@@ -36,6 +37,7 @@ class ClientSession:
             logger.error('Validation answer error: %s', answer)
             raise
 
+    @backoff.on_exception(backoff.expo, aiohttp.ClientError, max_tries=6)
     async def request(self, method: str, url: str, json_data: dict | None, **kwargs) -> dict:
         async with self._session.request(
             method,

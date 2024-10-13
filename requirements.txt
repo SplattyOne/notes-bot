@@ -1,5 +1,6 @@
 aiohttp==3.10.5
 apscheduler==3.10.4
+backoff==2.2.1
 numpy==2.0.2
 numba==0.60.0
 orjson==3.10.7
