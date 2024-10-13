@@ -1,7 +1,6 @@
 import logging
 import typing
 import uuid
-from contextlib import asynccontextmanager
 
 import aiohttp
 
@@ -14,13 +13,6 @@ TEAMLY_API_CREATE_NOTE = '/api/v1/wiki/properties/command/execute'
 TEAMLY_API_GET_NOTES = '/api/v1/ql/content-database/content'
 
 logger = logging.getLogger(__name__)
-
-
-@asynccontextmanager
-async def teamly_session_context(*args, **kwargs) -> typing.AsyncGenerator[aiohttp.ClientSession, None]:
-    """Context manager for Teamly session"""
-    async with aiohttp.ClientSession(TEAMLY_API_URL, *args, **kwargs) as session:
-        yield session
 
 
 class TeamlyAuthClientProtocol(typing.Protocol):

@@ -16,5 +16,6 @@ RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
 COPY ./src/ .
+COPY ./config.example.yaml config.example.yaml
 
 ENTRYPOINT ["python", "main.py"]

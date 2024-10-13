@@ -9,7 +9,7 @@ def configure_logging(settings: AppSettings) -> None:
         '%(asctime)s: %(levelname)s | %(name)s - %(message)s')
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(console_formatter)
-    console_handler.setLevel(settings.log_level)
+    console_handler.setLevel(settings.common.log_level)
     # basicConfig
     logging.basicConfig(
         level='DEBUG',
