@@ -5,8 +5,10 @@ import typing
 from contextlib import asynccontextmanager
 from functools import wraps
 
+import backoff
 from telegram import Update, KeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import Application, ContextTypes, CommandHandler, MessageHandler, filters
+from telegram.error import NetworkError
 
 from services.telegram import TelegramClientProtocol
 from utils.recognizer import SpeechRecognizerProtocol
@@ -14,19 +16,31 @@ from utils.recognizer import SpeechRecognizerProtocol
 logger = logging.getLogger(__name__)
 
 
+@backoff.on_exception(backoff.expo, NetworkError, max_tries=6)
+async def start_telegram_app(application: Application) -> None:
+    """Telegram initialization with retries"""
+    await application.initialize()
+    await application.start()
+    await application.updater.start_polling(allowed_updates=Update.ALL_TYPES)
+
+
+async def stop_telegram_app(application: Application) -> None:
+    if application.updater.running:
+        await application.updater.stop()
+    if application.running:
+        await application.stop()
+    await application.shutdown()
+
+
 @asynccontextmanager
 async def telegram_app_context(telegram_token: str) -> typing.AsyncGenerator[Application, None]:
     """Context manager for Telegram app"""
+    application = Application.builder().token(telegram_token).concurrent_updates(True).build()
     try:
-        application = Application.builder().token(telegram_token).concurrent_updates(True).build()
-        await application.initialize()
-        await application.start()
-        await application.updater.start_polling(allowed_updates=Update.ALL_TYPES)
+        await start_telegram_app(application)
         yield application
     finally:
-        await application.updater.stop()
-        await application.stop()
-        await application.shutdown()
+        await stop_telegram_app(application)
 
 
 def check_user_allowed(func):
