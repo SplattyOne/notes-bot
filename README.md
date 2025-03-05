@@ -8,6 +8,8 @@ Bot for fast notes taking from telegram-bot, yandex-station, etc.
 - Teamly (https://academy.teamly.ru/space/5019017b-ad03-4c00-bdc0-0952fc1cac88/article/dfa9a32d-02c8-4f35-95d9-c98ca2e478c0)
 - Yonote (https://yonote.ru/developers#section/Vvedenie)
 - Notion (https://developers.notion.com/reference/intro)
+### Virtual Assistant:
+- Alice (https://dialogs.yandex.ru/developer/skills)
 
 #### Minimal notes structure you need:
 - title: [string] note text
@@ -25,4 +27,3 @@ Two filter modes:
   - where do you want to save your notes (Teamly, Yonote, ...);
   - delete messages after save or not.
 2. Sberchat support. One user for all chat-bots.
-3. Yandex-station support.
