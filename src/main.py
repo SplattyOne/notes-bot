@@ -1,9 +1,13 @@
+import aiohttp
 import asyncio
 import logging
 import os
 
+import uvicorn
+
 from config.settings import get_settings, NoteAppType
 from config.logging import configure_logging
+from api.app import FastapiFactory
 import handlers.notes as notes_handlers
 import handlers.filter as filter_handlers
 import repositories.teamly as teamly_repositories
@@ -31,7 +35,7 @@ class App:
         if not os.path.exists(self._settings.common.tmp_dir):
             os.mkdir(self._settings.common.tmp_dir)
 
-    async def run_async(self) -> None:
+    async def run_async_worker(self) -> None:
         async with http_utils.aiohttp_session_context(teamly_repositories.TEAMLY_API_URL) as teamly_session, \
                 http_utils.aiohttp_session_context(yonote_repositories.YONOTE_API_URL) as yonote_session, \
                 http_utils.aiohttp_session_context(notion_repositories.NOTION_API_URL) as notion_session, \
@@ -108,10 +112,48 @@ class App:
             while True:
                 await asyncio.sleep(5)
 
+    async def run_async_worker_safe(self) -> None:
+        try:
+            await self.run_async_worker()
+        except asyncio.CancelledError:
+            pass
+
+    async def get_notes_service(self) -> None:
+        notion_session = aiohttp.ClientSession(notion_repositories.NOTION_API_URL)
+        notion_client_config = self._settings.get_first_notion_client_config()
+        notion_client = notion_repositories.NotionClient(
+            notion_session,
+            notion_client_config.token,
+            notion_client_config.database_id,
+            notion_client_config.status_field_id,
+            notion_client_config.status_field_value,
+            notion_client_config.done_field_id
+        )
+        notion_service = notion_services.NotionService(notion_client)
+        return notion_service
+
+    @staticmethod
+    async def close_notes_service(notion_service: notion_services.NotionService):
+        await notion_service._notes_client._notion_session._session.close()
+
     def run(self) -> None:
         logger.warning('Starting app...')
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.run_async())
+        loop.run_until_complete(self.run_async_worker_safe())
+
+    def run_with_api(self) -> None:
+        logger.warning('Starting app and api...')
+        app = FastapiFactory(
+            self._settings.common.api_name,
+            get_notes_service=self.get_notes_service,
+            close_notes_service=self.close_notes_service,
+            worker_service=self.run_async_worker_safe
+        )
+        uvicorn.run(
+            app.app,
+            host=self._settings.common.api_host,
+            port=int(self._settings.common.api_port)
+        )
 
     def close(self) -> None:
         logger.warning('Closing app...')
@@ -120,7 +162,7 @@ class App:
 if __name__ == '__main__':
     app = App()
     try:
-        app.run()
+        app.run_with_api()
     except KeyboardInterrupt:
         pass
     finally:
