@@ -1,6 +1,7 @@
 aiohttp==3.10.5
 apscheduler==3.10.4
 backoff==2.2.1
+fastapi==0.115.11
 numpy==2.0.2
 numba==0.60.0
 orjson==3.10.7
@@ -12,3 +13,4 @@ soundfile==0.12.1
 SpeechRecognition==3.10.4
 torch==2.4.1
 openai-whisper==20240930
+uvicorn==0.34.0

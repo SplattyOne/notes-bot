@@ -87,6 +87,10 @@ class CommonSettings(BaseSettings):
     log_level: str = Field('INFO', alias='LOG_LEVEL')
     tmp_dir: str = Field('tmp', alias='TMP_DIR')
 
+    api_host: str = Field('0.0.0.0', alias='API_HOST')
+    api_port: str = Field('8888', alias='API_PORT')
+    api_name: str = Field('Notes bot', alias='API_NAME')
+
     @field_validator('tmp_dir', mode='after')
     @classmethod
     def transform_to_abs_path(cls, path: str) -> str:
@@ -109,10 +113,23 @@ def get_common_settings() -> CommonSettings:
     return common_settings
 
 
+class AliceSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file='.env.local', env_file_encoding='utf-8', extra='ignore')
+
+    user_id: str = Field(None, alias='ALICE_USER_ID')
+
+
+@lru_cache
+def get_alice_settings() -> AliceSettings:
+    return AliceSettings()
+
+
 class AppSettings(BaseSettings):
     model_config = SettingsConfigDict(extra='ignore')
 
     common: CommonSettings = get_common_settings()
+    alice: AliceSettings = get_alice_settings()
     transmit_from: TelegramBotApp = Field(alias='transmit_from')
     transmit_to: list[
         NotionNoteApp | TeamlyNoteApp | YonoteNoteApp] = Field(alias='transmit_to')
@@ -125,6 +142,9 @@ class AppSettings(BaseSettings):
     ) -> tuple[PydanticBaseSettingsSource, ...]:
         config_path = get_common_settings().config_path
         return (YamlConfigSettingsSource(settings_cls, yaml_file=config_path, yaml_file_encoding='utf-8'),)
+
+    def get_first_notion_client_config(self) -> NotionNoteApp | None:
+        return next((x for x in self.transmit_to if x.app == NoteAppType.NOTION), None)
 
 
 @lru_cache
