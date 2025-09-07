@@ -8,7 +8,7 @@ class Scheduler:
     def __init__(self) -> None:
         self._scheduler = AsyncIOScheduler()
 
-    async def run_job(self, func: typing.Coroutine, every_seconds: int) -> None:
+    async def run_job(self, func: typing.Any, every_seconds: int) -> None:
         trigger = IntervalTrigger(seconds=every_seconds)
         self._scheduler.add_job(func, trigger=trigger)
         self._scheduler.start()

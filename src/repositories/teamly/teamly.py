@@ -106,3 +106,11 @@ class TeamlyClient(notes_services.NoteClientProtocol):
     async def delete_note(self, note_id: uuid.UUID) -> None:
         logger.debug('Teamly delete note start')
         raise NotImplementedError('Method not implemented for Teamly repository')
+
+    async def list_pages(self, modified_since: str | None = None) -> list:
+        logger.debug('Teamly list pages start')
+        raise NotImplementedError('Method not implemented for Teamly repository')
+
+    async def get_page_blocks(self, page_id: str) -> list[dict]:
+        logger.debug('Notion get page blocks start')
+        raise NotImplementedError('Method not implemented for Notion repository')
