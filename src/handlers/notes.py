@@ -37,7 +37,7 @@ class NotesServiceProtocol(typing.Protocol):
     async def delete_note(self, id: uuid.UUID) -> None:
         ...
 
-    async def list_pages(self, modified_since: str | None = None) -> list:
+    async def list_pages(self, modified_since: str | None = None) -> list[dict]:
         ...
 
     async def get_page_blocks(self, page_id: str) -> list[dict]:
@@ -59,7 +59,7 @@ class SyncTrackerProtocol(typing.Protocol):
     async def update_sync_time(self, timestamp: str) -> None:
         ...
 
-    def get_current_time(self) -> str:
+    async def update_sync_time_if_bigger(self, timestamp: str) -> None:
         ...
 
 
@@ -71,6 +71,13 @@ class VectorStoreRepository(typing.Protocol):
         ...
 
     async def search(self, vector: list[float], limit: int) -> list[tuple]:
+        ...
+
+    async def delete_by_page_id(self, page_id: str) -> None:
+        ...
+
+    @staticmethod
+    def get_stable_id(s: str) -> str:
         ...
 
 
@@ -90,8 +97,7 @@ class AIService(typing.Protocol):
     async def generate_images(self, prompt: str) -> list[str | None]:
         ...
 
-    @staticmethod
-    def chunk_text(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
+    def chunk_text(self, text: str) -> list[str]:
         ...
 
 
@@ -162,14 +168,12 @@ class NotesHandler:
 
         # Save to vector DB
         upserted = 0
-        current_time = self._sync_tracker_service.get_current_time()
-        for page in pages:
+        for page in pages[:1]:
+            await self._sync_tracker_service.update_sync_time_if_bigger(
+                page.get("last_edited_time", "")
+            )
             chunks = await self._save_to_vector_db(page)
             upserted += len(chunks)
-
-        # Update sync timestamp
-        await self._sync_tracker_service.update_sync_time(current_time)
-        logger.debug(f"Updated sync time to: {current_time}")
         return upserted
 
     async def _save_to_vector_db(self, page: dict) -> list:
@@ -177,29 +181,33 @@ class NotesHandler:
         page_id = page.get("id", "")
         last_edited = page.get("last_edited_time", "")
         title = self._get_page_title(page)
-        logger.debug(f'{title=} {last_edited=}')
+        logger.debug(f'{page_id=} {title=} ({last_edited})')
         blocks = await self._sync_notes_service.get_page_blocks(page_id)
         text, image_urls = self._extract_text_and_images(blocks)
         image_caption = await self._sync_ai_service.caption_images(image_urls) if image_urls else ""
         full_text = (title + "\n" + text + ("\nImages: " + image_caption if image_caption else "")).strip()
-        # logger.debug(full_text)
+        logger.debug(full_text)
         if not full_text:
             return chunks
-        # chunks_text = self._sync_ai_service.chunk_text(full_text)
-        # vectors = await self._sync_ai_service.embed_texts(chunks_text)
-        # for idx, (ct, vec) in enumerate(zip(chunks_text, vectors)):
-        #     cid = _stable_id(f"{page_id}:{last_edited}:{idx}:{len(ct)}")
-        #     chunks.append(PageChunk(
-        #         id=cid,
-        #         page_id=page_id,
-        #         title=title,
-        #         text=ct,
-        #         image_urls=image_urls,
-        #         last_edited_time=last_edited,
-        #         metadata={},
-        #         vector=vec,
-        #     ))
-        # store.upsert(chunks)
+        chunks_text = self._sync_ai_service.chunk_text(full_text)
+        vectors = await self._sync_ai_service.embed_texts(chunks_text)
+        for idx, (ct, vec) in enumerate(zip(chunks_text, vectors)):
+            cid = self._sync_vector_store.get_stable_id(f"{page_id}:{last_edited}:{idx}:{len(ct)}")
+            logger.debug(cid)
+            chunks.append(PageChunk(
+                id=cid,
+                page_id=page_id,
+                title=title,
+                text=ct,
+                image_urls=image_urls,
+                last_edited_time=last_edited,
+                metadata={},
+                vector=vec,
+            ))
+        logger.debug(f"Deleted existing chunks for page: {page_id=} {title=}")
+        await self._sync_vector_store.delete_by_page_id(page_id)
+        logger.debug(f"Insert existing chunks for page: {page_id=} ({len(chunks)})")
+        await self._sync_vector_store.upsert(chunks)
         return chunks
 
     @staticmethod

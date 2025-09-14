@@ -1,15 +1,18 @@
 from typing import Iterable
+import uuid
 
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.http import models as qm
 
+from config.settings import QdrantSettings
 from models.vector import PageChunk
 
 
 class QdrantVectorStore():
-    def __init__(self, qdrant_url: str, qdrant_collection: str) -> None:
-        self.client = AsyncQdrantClient(url=qdrant_url)
-        self.collection = qdrant_collection
+    def __init__(self, settings: QdrantSettings) -> None:
+        self._settings = settings
+        self.client = AsyncQdrantClient(url=self._settings.url)
+        self.collection = self._settings.collection
         self.vector_size = 3072  # text-embedding-3-large
 
     async def ensure_collection(self) -> None:
@@ -59,3 +62,23 @@ class QdrantVectorStore():
                 ), float(p.score))
             )
         return items
+
+    async def delete_by_page_id(self, page_id: str) -> None:
+        await self.client.delete(
+            collection_name=self.collection,
+            points_selector=qm.FilterSelector(
+                filter=qm.Filter(
+                    must=[
+                        qm.FieldCondition(
+                            key="page_id",
+                            match=qm.MatchValue(value=page_id)
+                        )
+                    ]
+                )
+            )
+        )
+
+    @staticmethod
+    def get_stable_id(s: str) -> str:
+        # Deterministic UUIDv5 acceptable by Qdrant
+        return str(uuid.uuid5(uuid.NAMESPACE_URL, s))

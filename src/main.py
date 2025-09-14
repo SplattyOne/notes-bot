@@ -116,14 +116,8 @@ class App:
                 self._settings.transmit_from.allowed_users
             )
             telegram_service = telegram_services.TelegramService(telegram_client)
-            vector_store = qdrant_repositories.QdrantVectorStore(
-                self._settings.qdrant.url, self._settings.qdrant.collection)
-            ai_service = openai_repositories.OpenAIService(
-                self._settings.openai.api_key,
-                self._settings.openai.embed_model,
-                self._settings.openai.main_model,
-                self._settings.openai.image_model
-            )
+            vector_store = qdrant_repositories.QdrantVectorStore(self._settings.qdrant)
+            ai_service = openai_repositories.OpenAIService(self._settings.openai)
             sync_tracker = SyncTracker()
             self._notes_handler = notes_handlers.NotesHandler(telegram_service, filter_handlers.NotesFilter)
             self._construct_notes_handler_services(teamly_session, notion_session, yonote_session)
@@ -131,7 +125,6 @@ class App:
                 await self.get_notes_service(),
                 vector_store, ai_service, sync_tracker
             )
-
             await self._notes_handler.transmit_messages()
             await scheduler_utils.Scheduler().run_job(
                 self._notes_handler.etl_knowledge_to_vector_db,

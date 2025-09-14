@@ -151,10 +151,11 @@ class OpenaiSettings(BaseSettings):
     embed_model: str = Field(default="text-embedding-3-large", alias="OPENAI_EMBED_MODEL")
     image_model: str = Field(default="gpt-image-1", alias="OPENAI_IMAGE_MODEL")
 
-    # chunk_size: int = Field(default=1200, alias="CHUNK_SIZE")
-    # chunk_overlap: int = Field(default=200, alias="CHUNK_OVERLAP")
-    # max_context_chunks: int = Field(default=6, alias="MAX_CONTEXT_CHUNKS")
-    # temperature: float = Field(default=0.2, alias="TEMPERATURE")
+    chunk_size: int = Field(default=1200, alias="CHUNK_SIZE")
+    chunk_overlap: int = Field(default=200, alias="CHUNK_OVERLAP")
+    max_context_chunks: int = Field(default=6, alias="MAX_CONTEXT_CHUNKS")
+    temperature: float = Field(default=0.2, alias="TEMPERATURE")
+    max_concurrent_requests: int = Field(default=3, alias="MAX_CONCURRENT_REQUESTS")
 
 
 @lru_cache
