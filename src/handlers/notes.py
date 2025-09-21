@@ -10,7 +10,8 @@ logger = logging.getLogger(__name__)
 class MessageServiceProtocol(typing.Protocol):
     async def handle_messages(
         self,
-        callback: typing.Callable[[str], typing.Coroutine[typing.Any, typing.Any, None]]
+        message_callback: typing.Callable[[str], typing.Coroutine[typing.Any, typing.Any, None]],
+        search_callback: typing.Callable[[str], typing.Coroutine[typing.Any, typing.Any, tuple[str, list[str]]]]
     ) -> None:
         ...
 
@@ -37,7 +38,7 @@ class NotesServiceProtocol(typing.Protocol):
     async def delete_note(self, id: uuid.UUID) -> None:
         ...
 
-    async def list_pages(self, modified_since: str | None = None) -> list[dict]:
+    async def list_pages(self, modified_since: str | None = None, flexible_limit: int | None = None) -> list[dict]:
         ...
 
     async def get_page_blocks(self, page_id: str) -> list[dict]:
@@ -70,7 +71,7 @@ class VectorStoreRepository(typing.Protocol):
     async def upsert(self, chunks: typing.Iterable) -> None:
         ...
 
-    async def search(self, vector: list[float], limit: int) -> list[tuple]:
+    async def search(self, vector: list[float]) -> list[tuple[PageChunk, float]]:
         ...
 
     async def delete_by_page_id(self, page_id: str) -> None:
@@ -130,8 +131,27 @@ class NotesHandler:
             notes += await notes_service.get_undone_note_titles()
         return '\n'.join(notes)
 
+    async def _vector_search(self, text: str) -> tuple[str, list[str]]:
+        # Get text vector
+        qvec = await self._sync_ai_service.embed_text(text)
+        # Search similar vectors in db
+        search_results = await self._sync_vector_store.search(qvec)
+        contexts = [f"Название: {c.title}\n{c.text}" for c, _ in search_results]
+        # Generate answer with original text and db context
+        answer = await self._sync_ai_service.generate_answer(text, contexts)
+        # Collect original Notion image URLs from top results
+        seen = set()
+        image_urls: list[str] = []
+        for chunk, _ in search_results:
+            for url in chunk.image_urls:
+                if url and url not in seen:
+                    seen.add(url)
+                    image_urls.append(url)
+        return answer, image_urls
+
     async def transmit_messages(self) -> None:
-        await self._message_service.handle_messages(self._create_notes)
+        await self._sync_vector_store.ensure_collection()
+        await self._message_service.handle_messages(self._create_notes, self._vector_search)
         await self._message_service.handle_notes_request(self._get_notes)
         logger.info(
             'Message handlers initialized (%s) => {%s}.',
@@ -161,18 +181,18 @@ class NotesHandler:
         last_sync = await self._sync_tracker_service.get_last_sync_time()
         if last_sync:
             logger.debug(f"Fetching pages modified since: {last_sync}")
-            pages = await self._sync_notes_service.list_pages(modified_since=last_sync)
+            pages = await self._sync_notes_service.list_pages(modified_since=last_sync, flexible_limit=3)
         else:
             logger.debug("First sync: fetching all pages")
-            pages = await self._sync_notes_service.list_pages()
+            pages = await self._sync_notes_service.list_pages(modified_since=None, flexible_limit=3)
 
-        # Save to vector DB
+        # Save to vector DB first 1 pages
         upserted = 0
-        for page in pages[:1]:
+        for page in pages:
+            chunks = await self._save_to_vector_db(page)
             await self._sync_tracker_service.update_sync_time_if_bigger(
                 page.get("last_edited_time", "")
             )
-            chunks = await self._save_to_vector_db(page)
             upserted += len(chunks)
         return upserted
 

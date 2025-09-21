@@ -44,8 +44,9 @@ class QdrantVectorStore():
             )
         await self.client.upsert(collection_name=self.collection, points=points)
 
-    async def search(self, vector: list[float], limit: int) -> list[tuple[PageChunk, float]]:
-        res = await self.client.search(collection_name=self.collection, query_vector=vector, limit=limit)
+    async def search(self, vector: list[float]) -> list[tuple[PageChunk, float]]:
+        res = await self.client.search(collection_name=self.collection, query_vector=vector,
+                                       limit=self._settings.max_context_chunks)
         items: list[tuple[PageChunk, float]] = []
         for p in res:
             pl = p.payload or {}

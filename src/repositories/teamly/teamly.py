@@ -107,7 +107,7 @@ class TeamlyClient(notes_services.NoteClientProtocol):
         logger.debug('Teamly delete note start')
         raise NotImplementedError('Method not implemented for Teamly repository')
 
-    async def list_pages(self, modified_since: str | None = None) -> list:
+    async def list_pages(self, modified_since: str | None = None, flexible_limit: int | None = None) -> list:
         logger.debug('Teamly list pages start')
         raise NotImplementedError('Method not implemented for Teamly repository')
 

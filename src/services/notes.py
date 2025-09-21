@@ -21,7 +21,7 @@ class NoteClientProtocol(typing.Protocol):
     async def delete_note(self, note_id: uuid.UUID) -> None:
         ...
 
-    async def list_pages(self, modified_since: str | None = None) -> list:
+    async def list_pages(self, modified_since: str | None = None, flexible_limit: int | None = None) -> list:
         ...
 
     async def get_page_blocks(self, page_id: str) -> list[dict]:
@@ -54,8 +54,8 @@ class NoteService(notes_handlers.NotesServiceProtocol):
     async def delete_note(self, note_id: uuid.UUID) -> None:
         return await self._notes_client.delete_note(note_id)
 
-    async def list_pages(self, modified_since: str | None = None) -> list:
-        return await self._notes_client.list_pages(modified_since)
+    async def list_pages(self, modified_since: str | None = None, flexible_limit: int | None = None) -> list:
+        return await self._notes_client.list_pages(modified_since, flexible_limit)
 
     async def get_page_blocks(self, page_id: str) -> list[dict]:
         return await self._notes_client.get_page_blocks(page_id)

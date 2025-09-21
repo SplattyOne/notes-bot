@@ -92,7 +92,7 @@ class CommonSettings(BaseSettings):
     api_port: str = Field('8888', alias='API_PORT')
     api_name: str = Field('Notes bot', alias='API_NAME')
 
-    etl_knowledge_interval_seconds: int = Field(default=30, alias="ETL_KNOWLEDGE_INTERVAL_SECONDS")
+    etl_knowledge_interval_seconds: int = Field(default=300, alias="ETL_KNOWLEDGE_INTERVAL_SECONDS")
     delete_done_notes_interval_seconds: int = Field(default=300, alias="DELETE_DONE_NOTES_INTERVAL_SECONDS")
 
     @field_validator('tmp_dir', mode='after')
@@ -135,6 +135,7 @@ class QdrantSettings(BaseSettings):
 
     url: str = Field('http://localhost:6333', alias='QDRANT_URL')
     collection: str = Field('notion_pages', alias='QDRANT_COLLECTION')
+    max_context_chunks: int = Field(default=6, alias="MAX_CONTEXT_CHUNKS")
 
 
 @lru_cache
@@ -153,7 +154,6 @@ class OpenaiSettings(BaseSettings):
 
     chunk_size: int = Field(default=1200, alias="CHUNK_SIZE")
     chunk_overlap: int = Field(default=200, alias="CHUNK_OVERLAP")
-    max_context_chunks: int = Field(default=6, alias="MAX_CONTEXT_CHUNKS")
     temperature: float = Field(default=0.2, alias="TEMPERATURE")
     max_concurrent_requests: int = Field(default=3, alias="MAX_CONCURRENT_REQUESTS")
 

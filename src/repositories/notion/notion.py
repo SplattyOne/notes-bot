@@ -1,5 +1,6 @@
 from datetime import datetime
 import logging
+from operator import itemgetter
 import uuid
 
 import aiohttp
@@ -94,7 +95,7 @@ class NotionClient(notes_services.NoteClientProtocol):
         logger.debug('Notion delete note answer: %s', answer)
         return
 
-    async def list_pages(self, modified_since: str | None = None) -> list[dict]:
+    async def list_pages(self, modified_since: str | None = None, flexible_limit: int | None = None) -> list[dict]:
         logger.debug('Notion list pages start')
         # get all pages iteratively
         pages: list[dict] = []
@@ -114,6 +115,8 @@ class NotionClient(notes_services.NoteClientProtocol):
         # filter modified_since
         if modified_since:
             pages = self._filter_pages_by_edited_time(pages, modified_since)
+        if flexible_limit:
+            pages = self._filter_pages_by_flexible_limit(pages, flexible_limit)
         return pages
 
     @staticmethod
@@ -134,6 +137,26 @@ class NotionClient(notes_services.NoteClientProtocol):
             return filtered_results
         except Exception as e:
             logger.error(f"Error filtering by datetime: {e}, returning all pages")
+            return results
+
+    @staticmethod
+    def _filter_pages_by_flexible_limit(results: list[dict], flexible_limit: int) -> list[dict]:
+        try:
+            sorted_results = sorted(results, key=itemgetter("last_edited_time"))
+            filtered_results = sorted_results[:flexible_limit]
+            # If there are more pages, check theirs last_edited_time, if it is not the same as in last_element.
+            # Without this doing, other pages with same last_edited_time will be lost.
+            if len(filtered_results) != len(sorted_results):
+                last_elem_page_time_str = filtered_results[-1].get('last_edited_time', '')
+                for page in sorted_results[flexible_limit:]:
+                    if last_elem_page_time_str == page.get('last_edited_time', ''):
+                        filtered_results += [page]
+                    else:
+                        break
+            logger.debug(f"After filtering by flexible_limit {flexible_limit}: {len(filtered_results)} pages")
+            return filtered_results
+        except Exception as e:
+            logger.error(f"Error filtering by flexible_limit {flexible_limit}: {e}, returning all pages")
             return results
 
     async def get_page_blocks(self, page_id: str) -> list[dict]:

@@ -88,7 +88,7 @@ class YonoteClient(notes_services.NoteClientProtocol):
         logger.debug('Yonote delete note answer: %s', answer)
         return
 
-    async def list_pages(self, modified_since: str | None = None) -> list:
+    async def list_pages(self, modified_since: str | None = None, flexible_limit: int | None = None) -> list:
         logger.debug('Yonote list pages start')
         raise NotImplementedError('Method not implemented for Yonote repository')
 

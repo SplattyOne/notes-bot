@@ -71,9 +71,11 @@ def check_user_allowed(func):
 
 
 class TelegramClient(TelegramClientProtocol):
-    _message_callback: typing.Callable = None
-    _voice_callback: typing.Callable = None
-    _allowed_users: list = None
+    _message_callback: typing.Callable[[str], typing.Coroutine[typing.Any, typing.Any, None]]
+    _voice_callback: typing.Callable[[str], typing.Coroutine[typing.Any, typing.Any, None]]
+    _notes_request_callback: typing.Callable[[], typing.Coroutine[typing.Any, typing.Any, str]]
+    _search_callback: typing.Callable[[str], typing.Coroutine[typing.Any, typing.Any, tuple[str, list[str]]]]
+    _allowed_users: list
 
     def __init__(self, telegram_app: Application, recognizer_app: SpeechRecognizerProtocol, tmp_dir: str = 'tmp',
                  allowed_users: list = []) -> None:
@@ -86,8 +88,14 @@ class TelegramClient(TelegramClientProtocol):
     @check_user_allowed
     async def _text_message_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         logger.debug('Got message from telegram: %s', update.message.text)
-        await self._message_callback(update.message.text)
-        await update.message.reply_text('Message recieved.')
+        if update.message.text.lower().startswith('найди'):
+            answer, images = await self._search_callback(update.message.text)
+            await update.message.reply_text(answer)
+            for image_url in images:
+                await update.message.reply_photo(image_url)
+        else:
+            await self._message_callback(update.message.text)
+            await update.message.reply_text('Message recieved.')
         await update.message.delete()
 
     @check_user_allowed
@@ -106,8 +114,9 @@ class TelegramClient(TelegramClientProtocol):
     async def _notes_request_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         logger.debug('Got notes request from telegram: %s', update.message.text)
         user = update.effective_user
+        user_name = user.mention_html() if user else "Anonymous"
         reply_message = await update.message.reply_html(
-            f'Hi {user.mention_html()}! Your current notes:\n{await self._notes_request_callback()}'
+            f'Hi {user_name}! Your current notes:\n{await self._notes_request_callback()}'
         )
         await update.message.delete()
         await asyncio.sleep(10)
@@ -116,12 +125,13 @@ class TelegramClient(TelegramClientProtocol):
     async def _start_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Send a message when the command /start is issued."""
         user = update.effective_user
+        user_name = user.mention_html() if user else "Anonymous"
         keyboard = [
             [KeyboardButton("/notes"),],
         ]
         reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
         await update.message.reply_html(
-            f"Hi {user.mention_html()}! This bot can read your message/speech and convert it to note.",
+            f"Hi {user_name}! This bot can read your message/speech and convert it to note.",
             reply_markup=reply_markup
         )
 
@@ -129,15 +139,23 @@ class TelegramClient(TelegramClientProtocol):
         self._telegram_app.add_handler(
             CommandHandler("start", self._start_handler, block=False))
 
-    def handle_text_message(self, callback: typing.Coroutine) -> None:
-        self._message_callback = callback
+    def handle_text_message(
+        self,
+        message_callback: typing.Callable[[str], typing.Coroutine[typing.Any, typing.Any, None]],
+        search_callback: typing.Callable[[str], typing.Coroutine[typing.Any, typing.Any, tuple[str, list[str]]]]
+    ) -> None:
+        self._message_callback = message_callback
+        self._search_callback = search_callback
         self._telegram_app.add_handler(MessageHandler(
             filters.TEXT & ~filters.COMMAND,
             self._text_message_handler,
             block=False
         ))
 
-    def handle_voice_message(self, callback: typing.Coroutine) -> None:
+    def handle_voice_message(
+        self,
+        callback: typing.Callable[[str], typing.Coroutine[typing.Any, typing.Any, None]]
+    ) -> None:
         self._voice_callback = callback
         self._telegram_app.add_handler(MessageHandler(
             filters.VOICE,
@@ -145,7 +163,10 @@ class TelegramClient(TelegramClientProtocol):
             block=False
         ))
 
-    def handle_notes_request(self, callback: typing.Coroutine) -> None:
+    def handle_notes_request(
+        self,
+        callback: typing.Callable[[], typing.Coroutine[typing.Any, typing.Any, str]]
+    ) -> None:
         self._notes_request_callback = callback
         self._telegram_app.add_handler(
             CommandHandler("notes", self._notes_request_handler, block=False))
