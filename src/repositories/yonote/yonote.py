@@ -87,3 +87,11 @@ class YonoteClient(notes_services.NoteClientProtocol):
             'POST', YONOTE_API_DELETE_NOTE, message, headers=self._get_token_headers())
         logger.debug('Yonote delete note answer: %s', answer)
         return
+
+    async def list_pages(self, modified_since: str | None = None, flexible_limit: int | None = None) -> list:
+        logger.debug('Yonote list pages start')
+        raise NotImplementedError('Method not implemented for Yonote repository')
+
+    async def get_page_blocks(self, page_id: str) -> list[dict]:
+        logger.debug('Notion get page blocks start')
+        raise NotImplementedError('Method not implemented for Notion repository')

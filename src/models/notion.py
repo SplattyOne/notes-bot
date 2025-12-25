@@ -22,7 +22,7 @@ class NotesAnswer(BaseModel):
             **x.get('properties', {})
         }, self.results))
         return list(map(lambda x: Note(
-            id=x.get('id'),
+            id=x.get('id') or uuid.uuid4(),
             title=x.get('Name', {}).get('title', [{}])[0].get('plain_text'),
             status=x.get('Status', {}).get('status', {}).get('id'),
             done=x.get('Done', {}).get('checkbox', False)

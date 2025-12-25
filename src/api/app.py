@@ -41,5 +41,5 @@ class FastapiFactory:
         self.app.include_router(alice.router, prefix='/api/v1/alice', tags=['alice'])
 
     @staticmethod
-    async def root_healthcheck() -> None:
+    async def root_healthcheck() -> ORJSONResponse:
         return ORJSONResponse({'ok': True})

@@ -21,6 +21,12 @@ class NoteClientProtocol(typing.Protocol):
     async def delete_note(self, note_id: uuid.UUID) -> None:
         ...
 
+    async def list_pages(self, modified_since: str | None = None, flexible_limit: int | None = None) -> list:
+        ...
+
+    async def get_page_blocks(self, page_id: str) -> list[dict]:
+        ...
+
 
 class NoteService(notes_handlers.NotesServiceProtocol):
     def __init__(self, notes_client: NoteClientProtocol) -> None:
@@ -35,7 +41,7 @@ class NoteService(notes_handlers.NotesServiceProtocol):
     async def get_undone_note_titles(self) -> list[str]:
         undone_notes = await self._notes_client.get_undone_notes()
         undone_note_titles = list(map(lambda x: '[%s] %s' % (
-            x.status[:5],
+            x.status[:5] if x.status else '',
             x.title
         ), undone_notes))
         return sorted(undone_note_titles)
@@ -47,3 +53,9 @@ class NoteService(notes_handlers.NotesServiceProtocol):
 
     async def delete_note(self, note_id: uuid.UUID) -> None:
         return await self._notes_client.delete_note(note_id)
+
+    async def list_pages(self, modified_since: str | None = None, flexible_limit: int | None = None) -> list:
+        return await self._notes_client.list_pages(modified_since, flexible_limit)
+
+    async def get_page_blocks(self, page_id: str) -> list[dict]:
+        return await self._notes_client.get_page_blocks(page_id)

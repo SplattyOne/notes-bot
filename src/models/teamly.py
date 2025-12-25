@@ -6,11 +6,11 @@ import models.notes as notes_models
 
 
 class AuthTokens(BaseModel):
-    access_token: str = None
-    refresh_token: str = None
-    access_token_expires_at: int = None
-    refresh_token_expires_at: int = None
-    slug: str = None
+    access_token: str = ""
+    refresh_token: str = ""
+    access_token_expires_at: int | None = None
+    refresh_token_expires_at: int | None = None
+    slug: str | None = None
 
 
 class AuthTokensAnswer(BaseModel):
@@ -21,7 +21,10 @@ class AuthTokensAnswer(BaseModel):
     accounts: list[dict]
 
     def to_auth_tokens(self) -> dict:
-        return AuthTokens(**self.model_dump(exclude=('accounts',)), slug=self.accounts[0].get('slug'))
+        return AuthTokens(
+            **self.model_dump(exclude=('accounts',)),
+            slug=self.accounts[0].get('slug')
+        )
 
 
 class Note(notes_models.Note):

@@ -40,7 +40,7 @@ class BotApp(BaseModel):
 class TelegramBotApp(BotApp):
     """Telegram integration settings, more info:
     https://core.telegram.org/bots/api#authorizing-your-bot"""
-    app: BotAppType = BotAppType.TELEGRAM.value
+    app: BotAppType = BotAppType.TELEGRAM
     token: str
     allowed_users: list[str]
 
@@ -53,19 +53,20 @@ class NoteApp(BaseModel):
     done_field_id: str
     start_words: list[str] = []
     delete_done_notes: bool = False
+    knowledge_database_id: str = ''
 
 
 class NotionNoteApp(NoteApp):
     """Notion integration settings, more info:
     https://developers.notion.com/reference/intro"""
-    app: NoteAppType = NoteAppType.NOTION.value
+    app: NoteAppType = NoteAppType.NOTION
     token: str
 
 
 class TeamlyNoteApp(NoteApp):
     """Teamly integration settings, more info:
     https://academy.teamly.ru/space/5019017b-ad03-4c00-bdc0-0952fc1cac88/article/dfa9a32d-02c8-4f35-95d9-c98ca2e478c0"""
-    app: NoteAppType = NoteAppType.TEAMLY.value
+    app: NoteAppType = NoteAppType.TEAMLY
     integration_id: str
     integration_url: str
     client_secret: str
@@ -75,7 +76,7 @@ class TeamlyNoteApp(NoteApp):
 class YonoteNoteApp(NoteApp):
     """Yonote integration settings, more info:
     https://yonote.ru/developers#section/Vvedenie"""
-    app: NoteAppType = NoteAppType.YONOTE.value
+    app: NoteAppType = NoteAppType.YONOTE
     token: str
     collection_id: str
 
@@ -90,6 +91,9 @@ class CommonSettings(BaseSettings):
     api_host: str = Field('0.0.0.0', alias='API_HOST')
     api_port: str = Field('8888', alias='API_PORT')
     api_name: str = Field('Notes bot', alias='API_NAME')
+
+    etl_knowledge_interval_seconds: int = Field(default=300, alias="ETL_KNOWLEDGE_INTERVAL_SECONDS")
+    delete_done_notes_interval_seconds: int = Field(default=300, alias="DELETE_DONE_NOTES_INTERVAL_SECONDS")
 
     @field_validator('tmp_dir', mode='after')
     @classmethod
@@ -125,11 +129,49 @@ def get_alice_settings() -> AliceSettings:
     return AliceSettings()
 
 
+class QdrantSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file='.env.local', env_file_encoding='utf-8', extra='ignore')
+
+    url: str = Field('http://localhost:6333', alias='QDRANT_URL')
+    collection: str = Field('notion_pages', alias='QDRANT_COLLECTION')
+    max_context_chunks: int = Field(default=6, alias="MAX_CONTEXT_CHUNKS")
+
+
+@lru_cache
+def get_qdrant_settings() -> QdrantSettings:
+    return QdrantSettings()
+
+
+class OpenaiSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file='.env.local', env_file_encoding='utf-8', extra='ignore')
+
+    api_key: str = Field(alias="OPENAI_API_KEY")
+    main_model: str = Field(default="gpt-4o-mini", alias="OPENAI_MODEL")
+    embed_model: str = Field(default="text-embedding-3-large", alias="OPENAI_EMBED_MODEL")
+    image_model: str = Field(default="gpt-image-1", alias="OPENAI_IMAGE_MODEL")
+
+    chunk_size: int = Field(default=1200, alias="CHUNK_SIZE")
+    chunk_overlap: int = Field(default=200, alias="CHUNK_OVERLAP")
+    temperature: float = Field(default=0.2, alias="TEMPERATURE")
+    max_concurrent_requests: int = Field(default=3, alias="MAX_CONCURRENT_REQUESTS")
+
+
+@lru_cache
+def get_openai_settings() -> OpenaiSettings:
+    return OpenaiSettings()
+
+
 class AppSettings(BaseSettings):
-    model_config = SettingsConfigDict(extra='ignore')
+    model_config = SettingsConfigDict(
+        env_file='.env.local', env_file_encoding='utf-8', extra='ignore')
 
     common: CommonSettings = get_common_settings()
     alice: AliceSettings = get_alice_settings()
+    qdrant: QdrantSettings = get_qdrant_settings()
+    openai: OpenaiSettings = get_openai_settings()
+
     transmit_from: TelegramBotApp = Field(alias='transmit_from')
     transmit_to: list[
         NotionNoteApp | TeamlyNoteApp | YonoteNoteApp] = Field(alias='transmit_to')
